@@ -1,0 +1,4 @@
+.env
+truthgpt.db
+__pycache__/
+.vercel

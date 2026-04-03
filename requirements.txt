@@ -1,0 +1,7 @@
+flask
+groq
+tavily-python
+feedparser
+scikit-learn
+python-dotenv
+bleach
