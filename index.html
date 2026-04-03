@@ -474,6 +474,13 @@
 
     <div id="resultsContainer"></div>
 
+    <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
+  <button onclick="clearHistory()" 
+    style="background:#f1f3f4;border:1px solid #dadce0;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;">
+    🗑️ Clear History
+  </button>
+</div>
+
     <div id="recentSection">
       <div class="recent-label">Recent fact checks</div>
       <div id="recentContainer"></div>
@@ -560,8 +567,6 @@ const VERDICT_LABELS = {
   "unverified": "Unverified",
   "partly": "Partly True"
 };
-
-
 
 // =========================
 // UTILITIES: HTML Escaping & Validation
@@ -1055,6 +1060,19 @@ function loadRecent() {
     .join("");
 }
 
+function clearHistory() {
+  localStorage.removeItem("history");
+
+  // Clear UI instantly
+  const recentContainer = document.getElementById("recentContainer");
+  const recentAllContainer = document.getElementById("recentAllContainer");
+
+  if (recentContainer) recentContainer.innerHTML = "";
+  if (recentAllContainer) recentAllContainer.innerHTML = "";
+
+  alert("History cleared!");
+}
+
 // =========================
 // IMAGE TAB PLACEHOLDERS
 // =========================
@@ -1097,3 +1115,4 @@ document.addEventListener("DOMContentLoaded", function() {
 
  
 
+<div id="recentSection"></div>

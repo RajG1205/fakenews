@@ -5,3 +5,4 @@ feedparser
 scikit-learn
 python-dotenv
 bleach
+gunicorn
