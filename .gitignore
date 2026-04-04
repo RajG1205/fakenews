@@ -1,4 +1,4 @@
 .env
-truthgpt.db
+VerifyAI.db
 __pycache__/
 .vercel

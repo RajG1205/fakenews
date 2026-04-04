@@ -57,7 +57,7 @@ NEWS_FEEDS = {
 # ============================================
 class TruthDB:
     def __init__(self):
-        self.conn = sqlite3.connect("truthgpt.db", check_same_thread=False)
+        self.conn = sqlite3.connect("VerifyAI.db", check_same_thread=False)
         self.conn.execute("CREATE TABLE IF NOT EXISTS chats(id TEXT PRIMARY KEY, title TEXT, pinned INTEGER DEFAULT 0)")
         self.conn.execute("CREATE TABLE IF NOT EXISTS messages(id INTEGER PRIMARY KEY AUTOINCREMENT, chat_id TEXT, role TEXT, message TEXT)")
         self.conn.commit()
