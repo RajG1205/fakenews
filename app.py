@@ -79,7 +79,7 @@ def breaking_news():
 
 
 # =========================
-# RUN
+# RUN (LOCAL ONLY)
 # =========================
 if __name__ == "__main__":
     app.run(debug=True)
