@@ -261,7 +261,6 @@ def fact_check(claim: str) -> dict:
             data["sources"] = clustered or []
             data["highlights"] = data.get("highlights", []) or []
             data["quotes"] = data.get("quotes", []) or []
-            data["confidence"] = calculate_confidence(data["sources"], data["verdict"])
             
             # Cache the result
             fact_check_cache[cache_key] = data
@@ -286,7 +285,6 @@ def get_fallback_response(claim: str, verdict: str, explanation: str) -> dict:
         "sources": [],
         "highlights": [],
         "quotes": [],
-        "confidence": 0,
         "fallback": True
     }
 
@@ -309,26 +307,3 @@ def normalize_verdict(verdict: str) -> str:
         return "MISLEADING"
     return "UNCERTAIN"
 
-
-def calculate_confidence(sources: list, verdict: str) -> int:
-    """
-    Calculate confidence score (0-100) based on number of sources and verdict.
-    More sources = higher confidence. Fallback/uncertain = lower confidence.
-    """
-    if not sources or len(sources) == 0:
-        return 0
-    
-    # Base confidence on source count
-    base_confidence = min(len(sources) * 10, 70)
-    
-    # Adjust based on verdict
-    if verdict == "TRUE":
-        confidence = min(base_confidence + 20, 100)
-    elif verdict == "FALSE":
-        confidence = min(base_confidence + 15, 100)
-    elif verdict == "MISLEADING":
-        confidence = base_confidence + 5
-    else:  # UNCERTAIN
-        confidence = base_confidence - 10
-    
-    return max(10, min(confidence, 100))  # Clamp between 10-100

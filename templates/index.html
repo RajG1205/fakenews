@@ -1,0 +1,1627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>VerifyAI — Fact Check Explorer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+  <style>
+    /* =========================
+       DESIGN TOKENS
+    ========================= */
+    :root {
+      --bg: #0d0f12;
+      --surface: #14171c;
+      --surface-2: #1c2028;
+      --surface-3: #242933;
+      --border: rgba(255,255,255,0.07);
+      --border-hover: rgba(255,255,255,0.14);
+      --text: #f0f2f5;
+      --subtext: #8b90a0;
+      --muted: #555b6b;
+
+      --accent: #5b7fff;
+      --accent-dim: rgba(91,127,255,0.12);
+      --accent-glow: rgba(91,127,255,0.25);
+
+      --true: #22c55e;
+      --true-bg: rgba(34,197,94,0.1);
+      --false: #ef4444;
+      --false-bg: rgba(239,68,68,0.1);
+      --misleading: #f59e0b;
+      --misleading-bg: rgba(245,158,11,0.1);
+      --unverified: #94a3b8;
+      --unverified-bg: rgba(148,163,184,0.1);
+
+      --radius-sm: 8px;
+      --radius: 14px;
+      --radius-lg: 20px;
+      --radius-xl: 28px;
+
+      --shadow: 0 4px 24px rgba(0,0,0,0.4);
+      --shadow-sm: 0 2px 12px rgba(0,0,0,0.25);
+    }
+
+    /* =========================
+       RESET
+    ========================= */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    a { text-decoration: none; color: inherit; }
+    button { font-family: inherit; cursor: pointer; }
+
+    /* =========================
+       BACKGROUND ORBS
+    ========================= */
+    .bg-orb {
+      position: fixed;
+      border-radius: 50%;
+      pointer-events: none;
+      filter: blur(90px);
+      opacity: 0.18;
+      z-index: 0;
+    }
+    .bg-orb-1 {
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, #5b7fff, transparent);
+      top: -200px; left: -200px;
+    }
+    .bg-orb-2 {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, #8b5cf6, transparent);
+      bottom: -150px; right: -150px;
+    }
+
+    /* =========================
+       HEADER
+    ========================= */
+    .fc-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      height: 62px;
+      display: flex;
+      align-items: center;
+      padding: 0 28px;
+      gap: 20px;
+      background: rgba(13,15,18,0.85);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .fc-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .fc-logo-mark {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, #5b7fff, #8b5cf6);
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+    }
+
+    .fc-logo-text {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.02em;
+    }
+
+    .fc-logo-text span {
+      color: var(--accent);
+    }
+
+    .fc-search-wrap {
+      flex: 1;
+      max-width: 560px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      padding: 0 14px 0 16px;
+      height: 40px;
+      border-radius: 40px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .fc-search-wrap:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .fc-search-icon {
+      color: var(--muted);
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .fc-search-input {
+      flex: 1;
+      border: none;
+      outline: none;
+      background: transparent;
+      color: var(--text);
+      font-size: 14px;
+      font-family: 'DM Sans', sans-serif;
+    }
+
+    .fc-search-input::placeholder { color: var(--muted); }
+
+    .fc-search-btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 5px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+      transition: opacity 0.2s, transform 0.1s;
+      flex-shrink: 0;
+    }
+    .fc-search-btn:hover { opacity: 0.85; transform: scale(0.98); }
+    .fc-search-btn:active { transform: scale(0.96); }
+
+    /* =========================
+       NAV TABS
+    ========================= */
+    .fc-nav {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 28px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .fc-nav-tab {
+      padding: 13px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--subtext);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: color 0.2s, border-color 0.2s;
+      white-space: nowrap;
+    }
+
+    .fc-nav-tab:hover { color: var(--text); }
+
+    .fc-nav-tab.active {
+      color: var(--text);
+      border-bottom-color: var(--accent);
+    }
+
+    /* =========================
+       BODY LAYOUT
+    ========================= */
+    .fc-body {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 28px 20px 60px;
+      position: relative;
+      z-index: 1;
+    }
+
+    #resultsContainer {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    /* =========================
+       HERO
+    ========================= */
+    .hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 52vh;
+      text-align: center;
+      padding: 60px 20px;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--accent-dim);
+      border: 1px solid rgba(91,127,255,0.25);
+      padding: 5px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      color: #a0b4ff;
+      margin-bottom: 24px;
+      letter-spacing: 0.02em;
+    }
+
+    .hero-badge-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.85); }
+    }
+
+    .hero h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(34px, 5vw, 52px);
+      font-weight: 700;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+
+    .hero h1 em {
+      font-style: normal;
+      background: linear-gradient(90deg, #5b7fff, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero p {
+      color: var(--subtext);
+      font-size: 16px;
+      margin-bottom: 36px;
+      max-width: 400px;
+    }
+
+    .hero-search-wrap {
+      width: 100%;
+      max-width: 520px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      padding: 10px 12px 10px 20px;
+      border-radius: 50px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .hero-search-wrap:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px var(--accent-glow), var(--shadow-sm);
+    }
+
+    .hero-search-wrap input {
+      flex: 1;
+      border: none;
+      outline: none;
+      background: transparent;
+      color: var(--text);
+      font-size: 15px;
+      font-family: 'DM Sans', sans-serif;
+    }
+
+    .hero-search-wrap input::placeholder { color: var(--muted); }
+
+    .hero-search-btn {
+      background: linear-gradient(135deg, var(--accent), #7c63f5);
+      color: white;
+      border: none;
+      padding: 10px 22px;
+      border-radius: 40px;
+      font-size: 14px;
+      font-weight: 500;
+      flex-shrink: 0;
+      transition: opacity 0.2s, transform 0.15s;
+    }
+    .hero-search-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+    .hero-examples {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+
+    .hero-example-chip {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--subtext);
+      font-size: 12px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      transition: all 0.2s;
+    }
+
+    .hero-example-chip:hover {
+      border-color: var(--border-hover);
+      color: var(--text);
+      background: var(--surface-3);
+    }
+
+    /* =========================
+       BREAKING NEWS
+    ========================= */
+    .breaking-news-section {
+      margin-bottom: 28px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: var(--surface);
+    }
+
+    /* Header bar */
+    .bn-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .bn-header-left {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .bn-live-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(239,68,68,0.12);
+      border: 1px solid rgba(239,68,68,0.25);
+      color: #f87171;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 3px 9px;
+      border-radius: 20px;
+    }
+
+    .bn-live-dot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: #ef4444;
+      animation: pulse 1.6s infinite;
+    }
+
+    .bn-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .bn-meta {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .bn-refresh-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 4px 10px;
+      border-radius: 6px;
+      transition: all 0.15s;
+    }
+    .bn-refresh-btn:hover { border-color: var(--border-hover); color: var(--text); }
+    .bn-refresh-btn svg { transition: transform 0.4s; }
+    .bn-refresh-btn.spinning svg { animation: spin 0.7s linear infinite; }
+
+    /* Ticker strip */
+    .bn-ticker-wrap {
+      overflow: hidden;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface-2);
+      height: 36px;
+      display: flex;
+      align-items: center;
+    }
+
+    .bn-ticker-track {
+      display: flex;
+      gap: 0;
+      white-space: nowrap;
+      animation: ticker 40s linear infinite;
+      will-change: transform;
+    }
+
+    .bn-ticker-track:hover { animation-play-state: paused; }
+
+    @keyframes ticker {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+
+    .bn-ticker-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 24px;
+      font-size: 12px;
+      color: var(--subtext);
+      cursor: pointer;
+      transition: color 0.15s;
+      border-right: 1px solid var(--border);
+    }
+
+    .bn-ticker-item:hover { color: var(--text); }
+
+    .bn-ticker-sep {
+      color: var(--false);
+      font-size: 10px;
+      flex-shrink: 0;
+    }
+
+    /* Category grid */
+    .bn-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1px;
+      background: var(--border);
+    }
+
+    .bn-card {
+      background: var(--surface);
+      padding: 14px 16px;
+      cursor: pointer;
+      transition: background 0.15s;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .bn-card:hover { background: var(--surface-2); }
+
+    .bn-card-category {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+
+    .bn-card-title {
+      font-size: 12.5px;
+      color: var(--subtext);
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .bn-card:hover .bn-card-title { color: var(--text); }
+
+    /* Category color map */
+    .cat-world     { color: #60a5fa; }
+    .cat-science   { color: #34d399; }
+    .cat-technology{ color: #a78bfa; }
+    .cat-health    { color: #f472b6; }
+    .cat-economy   { color: #fbbf24; }
+    .cat-default   { color: var(--accent); }
+
+    .bn-skeleton {
+      height: 200px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: 13px;
+      gap: 10px;
+    }
+
+    .bn-empty {
+      padding: 24px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .section-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    .section-label-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: #ef4444;
+      animation: pulse 1.8s infinite;
+    }
+
+    .breaking-news-empty {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    /* =========================
+       FILTERS
+    ========================= */
+    .fc-filters {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .fc-filter-label {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .fc-filter-chip {
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--subtext);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .fc-filter-chip:hover {
+      border-color: var(--border-hover);
+      color: var(--text);
+    }
+
+    .fc-filter-chip.active {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+      color: #a0b4ff;
+    }
+
+    /* =========================
+       CARDS
+    ========================= */
+    .fc-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+      margin-bottom: 12px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      animation: cardIn 0.35s ease-out both;
+    }
+
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .fc-card:hover {
+      border-color: var(--border-hover);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .fc-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 14px;
+    }
+
+    .fc-claim-text {
+      font-size: 15px;
+      font-weight: 500;
+      line-height: 1.5;
+      color: var(--text);
+      flex: 1;
+    }
+
+    /* =========================
+       VERDICT BADGES
+    ========================= */
+    .fc-verdict-badge {
+      padding: 4px 11px;
+      border-radius: 20px;
+      font-size: 11.5px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    .verdict-true      { background: var(--true-bg);      color: var(--true); }
+    .verdict-false     { background: var(--false-bg);     color: var(--false); }
+    .verdict-misleading{ background: var(--misleading-bg); color: var(--misleading); }
+    .verdict-unverified{ background: var(--unverified-bg); color: var(--unverified); }
+
+    /* =========================
+       CARD META
+    ========================= */
+    .fc-card-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    .fc-publisher {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--subtext);
+      font-weight: 500;
+    }
+
+    .fc-publisher-dot {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: var(--accent-dim);
+      border: 1px solid rgba(91,127,255,0.2);
+      font-size: 10px;
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .fc-sep { color: var(--muted); }
+
+    /* =========================
+       SOURCE BADGES ROW
+    ========================= */
+    .source-badges-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    .source-badge-chip {
+      background: var(--surface-3);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      padding: 3px 9px;
+      border-radius: 6px;
+    }
+
+    /* =========================
+       EXPLAIN TOGGLE BUTTON
+    ========================= */
+    .fc-explain-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--subtext);
+      font-size: 12.5px;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      margin-top: 14px;
+      transition: all 0.15s;
+    }
+
+    .fc-explain-btn:hover {
+      border-color: var(--border-hover);
+      color: var(--text);
+      background: var(--surface-2);
+    }
+
+    /* =========================
+       EXPLANATION BOX
+    ========================= */
+    .explain-box {
+      background: var(--surface-2);
+      border-left: 3px solid var(--accent);
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+      margin-top: 12px;
+      font-size: 13.5px;
+      color: var(--subtext);
+      line-height: 1.65;
+    }
+
+    .source-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      color: var(--accent);
+      margin-top: 8px;
+      margin-right: 12px;
+      transition: opacity 0.15s;
+    }
+    .source-link:hover { opacity: 0.75; }
+
+    /* =========================
+       STATES: LOADING / EMPTY
+    ========================= */
+    .fc-loading,
+    .fc-empty {
+      text-align: center;
+      padding: 60px 20px;
+      display: none;
+    }
+
+    .fc-loading.show,
+    .fc-empty.show {
+      display: block;
+    }
+
+    .fc-spinner {
+      width: 32px;
+      height: 32px;
+      border: 2px solid var(--surface-3);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto 14px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .fc-loading p {
+      color: var(--subtext);
+      font-size: 14px;
+    }
+
+    .fc-empty-icon {
+      font-size: 38px;
+      margin-bottom: 12px;
+      opacity: 0.5;
+    }
+
+    .fc-empty-title {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .fc-empty-sub {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    /* =========================
+       RECENT SECTION
+    ========================= */
+    .recent-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    /* =========================
+       CLEAR HISTORY BUTTON
+    ========================= */
+    .clear-history-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 6px 14px;
+      border-radius: var(--radius-sm);
+      margin-bottom: 16px;
+      transition: all 0.15s;
+    }
+    .clear-history-btn:hover {
+      border-color: var(--false);
+      color: var(--false);
+      background: var(--false-bg);
+    }
+
+    /* =========================
+       TAB PANELS
+    ========================= */
+    .tab-panel { display: none; }
+    .tab-panel.show { display: block; }
+
+    /* =========================
+       ABOUT
+    ========================= */
+    .about-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      max-width: 680px;
+      margin-top: 24px;
+    }
+
+    .about-card h2 {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    .about-card p {
+      font-size: 14px;
+      color: var(--subtext);
+      line-height: 1.7;
+      margin-bottom: 20px;
+    }
+
+    .about-card h3 {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    .dev-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .dev-list li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      color: var(--subtext);
+    }
+
+    .dev-avatar {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      background: var(--accent-dim);
+      border: 1px solid rgba(91,127,255,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      color: var(--accent);
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    /* =========================
+       AI SECTION
+    ========================= */
+    .ai-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      margin-bottom: 20px;
+      display: none;
+    }
+
+    .ai-section.visible { display: block; }
+
+    .ai-section-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .ai-spinner {
+      width: 14px; height: 14px;
+      border: 2px solid var(--surface-3);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+
+    .ai-content {
+      font-size: 14px;
+      color: var(--subtext);
+      line-height: 1.65;
+    }
+
+    /* =========================
+       BREAKING NEWS SPINNER
+    ========================= */
+    .breaking-news-spinner {
+      width: 12px; height: 12px;
+      border: 1.5px solid var(--surface-3);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+
+    /* =========================
+       RESULTS META
+    ========================= */
+    .fc-results-meta {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    /* =========================
+       SCROLLBAR
+    ========================= */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 3px; }
+
+    /* =========================
+       ANIMATIONS
+    ========================= */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- BG ORBS -->
+<div class="bg-orb bg-orb-1"></div>
+<div class="bg-orb bg-orb-2"></div>
+
+<!-- HEADER -->
+<header class="fc-header">
+  <a class="fc-logo" href="#">
+    <div class="fc-logo-mark">✦</div>
+    <span class="fc-logo-text">Verify<span>AI</span></span>
+  </a>
+
+</header>
+
+<!-- NAV TABS -->
+<nav class="fc-nav">
+  <div class="fc-nav-tab active" onclick="switchTab('explorer', this)">Explorer</div>
+  <div class="fc-nav-tab" onclick="switchTab('recent', this)">Recent</div>
+  <div class="fc-nav-tab" onclick="switchTab('about', this)">About</div>
+</nav>
+
+<!-- BODY -->
+<div class="fc-body">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-badge">
+      <div class="hero-badge-dot"></div>
+      AI-Powered · Real-Time
+    </div>
+    <h1>Verify claims with<br><em>instant intelligence</em></h1>
+    <p>Search any claim, topic, or person and get fact-checked results in seconds.</p>
+
+    <div class="hero-search-wrap">
+      <input id="searchInput" placeholder="e.g. 'Vaccines cause autism'…" />
+      <button class="hero-search-btn" onclick="doHeroSearch()">Check it →</button>
+    </div>
+
+    <div class="hero-examples">
+      <button class="hero-example-chip" onclick="searchExample('Did NASA fake the moon landing?')">NASA Moon Landing</button>
+      <button class="hero-example-chip" onclick="searchExample('Does sugar cause hyperactivity in children?')">Sugar & Hyperactivity</button>
+      <button class="hero-example-chip" onclick="searchExample('Is climate change man-made?')">Climate Change</button>
+    </div>
+  </div>
+
+  <!-- EXPLORER TAB -->
+  <div class="tab-panel show" id="tab-explorer">
+
+    <!-- BREAKING NEWS -->
+    <div class="breaking-news-section" id="breakingNewsSection">
+      <div class="bn-header">
+        <div class="bn-header-left">
+          <div class="bn-live-badge"><div class="bn-live-dot"></div>Live</div>
+          <span class="bn-title">Breaking Claims</span>
+          <span class="bn-meta" id="bnLastUpdated"></span>
+        </div>
+        <button class="bn-refresh-btn" id="bnRefreshBtn" onclick="manualRefreshNews()">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+          </svg>
+          Refresh
+        </button>
+      </div>
+      <div class="bn-ticker-wrap" id="bnTickerWrap" style="display:none;">
+        <div class="bn-ticker-track" id="bnTickerTrack"></div>
+      </div>
+      <div id="bnGrid">
+        <div class="bn-skeleton">
+          <div class="fc-spinner" style="width:18px;height:18px;border-width:2px;margin:0;"></div>
+          Loading live news…
+        </div>
+      </div>
+    </div>
+
+    <!-- FILTERS -->
+    <div class="fc-filters" id="filtersRow">
+      <span class="fc-filter-label">Filter:</span>
+      <div class="fc-filter-chip active" onclick="toggleFilter(this)">All</div>
+      <div class="fc-filter-chip" onclick="toggleFilter(this)">English</div>
+      <div class="fc-filter-chip" onclick="toggleFilter(this)">Last 30 days</div>
+      <div class="fc-filter-chip" onclick="toggleFilter(this)">Notable sources only</div>
+    </div>
+
+    <!-- AI SECTION -->
+    <div class="ai-section" id="aiSection">
+      <div class="ai-section-header">
+        ✦ AI Overview
+        <div class="ai-spinner" id="aiSpinner"></div>
+      </div>
+      <div class="ai-content" id="aiContent"></div>
+    </div>
+
+    <!-- RESULTS META -->
+    <div id="resultsMeta" class="fc-results-meta" style="display:none;"></div>
+
+    <!-- LOADING -->
+    <div class="fc-loading" id="loadingState">
+      <div class="fc-spinner"></div>
+      <p>Searching fact check database…</p>
+    </div>
+
+    <!-- EMPTY -->
+    <div class="fc-empty" id="emptyState">
+      <div class="fc-empty-icon">🔎</div>
+      <div class="fc-empty-title">No fact checks found</div>
+      <div class="fc-empty-sub">Try a different keyword, or browse recent fact checks</div>
+    </div>
+
+    <!-- RESULTS -->
+    <div id="resultsContainer"></div>
+
+    <!-- RECENT -->
+    <div id="recentSection">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+        <div class="recent-label">Recent fact checks</div>
+        <button class="clear-history-btn" onclick="clearHistory()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+          Clear history
+        </button>
+      </div>
+      <div id="recentContainer"></div>
+    </div>
+
+  </div>
+
+  <!-- RECENT TAB -->
+  <div class="tab-panel" id="tab-recent">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+      <div class="recent-label">All recent fact checks</div>
+      <button class="clear-history-btn" onclick="clearHistory()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+        Clear history
+      </button>
+    </div>
+    <div id="recentAllContainer"></div>
+  </div>
+
+  <!-- ABOUT TAB -->
+  <div class="tab-panel" id="tab-about">
+    <div class="about-card">
+      <h2>About VerifyAI</h2>
+      <p>VerifyAI is an AI-powered fact-checking platform designed to verify claims using reliable sources. It helps users quickly determine whether information is true, false, or misleading using real-time data and intelligent analysis.</p>
+      <h3>Developers</h3>
+      <ul class="dev-list">
+        <li><div class="dev-avatar">R</div>Raj Gupta &middot; <span style="color:var(--muted); font-size:13px;">DY24ENGUOAIM041</span></li>
+        <li><div class="dev-avatar">U</div>Ujjwal Santosh Gade &middot; <span style="color:var(--muted); font-size:13px;">DY24ENGUOAIM035</span></li>
+        <li><div class="dev-avatar">Z</div>Zaid Masroor Ahmed Shaikh &middot; <span style="color:var(--muted); font-size:13px;">DY24ENGUOAIM164</span></li>
+        <li><div class="dev-avatar">V</div>Vedant Deepak Patil &middot; <span style="color:var(--muted); font-size:13px;">DY24ENGUOAIM156</span></li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// =========================
+// CONSTANTS
+// =========================
+const VERDICT_CLASSES = {
+  "true": "verdict-true",
+  "false": "verdict-false",
+  "misleading": "verdict-misleading",
+  "uncertain": "verdict-unverified",
+  "unverified": "verdict-unverified",
+  "partly": "verdict-misleading"
+};
+
+const VERDICT_LABELS = {
+  "true": "True",
+  "false": "False",
+  "misleading": "Misleading",
+  "uncertain": "Uncertain",
+  "unverified": "Unverified",
+  "partly": "Partly True"
+};
+
+// =========================
+// UTILITIES
+// =========================
+function escapeHtml(text) {
+  if (!text) return "";
+  const d = document.createElement("div");
+  d.textContent = text;
+  return d.innerHTML;
+}
+
+function escapeHtmlAttr(str) {
+  if (!str) return "";
+  return str.replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/'/g,"&#x27;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+function getSafeUrl(url) {
+  if (!url) return "#";
+  if (!url.startsWith("http://") && !url.startsWith("https://")) return "#";
+  return escapeHtmlAttr(url);
+}
+
+function isValidResult(r) {
+  return r && r.claim && r.result && r.result.verdict && r.result.explanation;
+}
+
+function getSourceDomain(source) {
+  if (!source || !source.url) return null;
+  try {
+    const url = new URL(source.url);
+    return url.hostname.replace("www.", "").split(".")[0].toUpperCase().substring(0, 5);
+  } catch { return null; }
+}
+
+// =========================
+// RENDER CARD
+// =========================
+function renderCard(item, index = 0) {
+  const verdict = (item.verdict || "uncertain").toLowerCase();
+  const vc = VERDICT_CLASSES[verdict] || "verdict-unverified";
+  const vl = VERDICT_LABELS[verdict] || "Uncertain";
+
+  const claimEscaped = escapeHtml(item.claim);
+  const explanationEscaped = escapeHtml(item.explanation || "No explanation available.");
+
+  const sources = item.sources || [];
+  const sourceCount = sources.length;
+  const sourceText = sourceCount === 1 ? "source" : "sources";
+
+  const uniqueDomains = [...new Set(sources.slice(0, 4).map(getSourceDomain).filter(Boolean))];
+  const badgesHTML = uniqueDomains.map(d => `<span class="source-badge-chip">${d}</span>`).join("");
+
+  const sourcesHTML = sources.slice(0, 3).map(s => {
+    const titleEscaped = escapeHtml(s.title || "Source");
+    const urlSafe = getSafeUrl(s.url);
+    return `<a class="source-link" href="${urlSafe}" target="_blank" rel="noopener">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      ${titleEscaped}
+    </a>`;
+  }).join("");
+
+  return `
+    <div class="fc-card" data-verdict="${verdict}">
+      <div class="fc-card-top">
+        <div class="fc-claim-text">${claimEscaped}</div>
+        <span class="fc-verdict-badge ${vc}">${vl}</span>
+      </div>
+
+      <div class="fc-card-meta">
+        <span class="fc-publisher">
+          <span class="fc-publisher-dot">T</span>
+          TruthGPT
+        </span>
+        <span class="fc-sep">·</span>
+        <span>${item.date || "Now"}</span>
+        ${sourceCount > 0 ? `<span class="fc-sep">·</span><span>${sourceCount} ${sourceText}</span>` : ""}
+      </div>
+
+      ${badgesHTML ? `<div class="source-badges-row">${badgesHTML}</div>` : ""}
+
+      <button class="fc-explain-btn" onclick="toggleExplain(${index})">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Why this verdict
+      </button>
+
+      <div id="exp-${index}" style="display:none;">
+        <div class="explain-box">${explanationEscaped}</div>
+        <div style="margin-top:6px;">${sourcesHTML}</div>
+      </div>
+    </div>`;
+}
+
+// =========================
+// TOGGLE EXPLANATION
+// =========================
+function toggleExplain(index) {
+  const el = document.getElementById("exp-" + index);
+  if (!el) return;
+  const btn = el.previousElementSibling;
+  const isHidden = el.style.display === "none";
+  el.style.display = isHidden ? "block" : "none";
+  if (btn) btn.style.color = isHidden ? "var(--accent)" : "";
+}
+
+// =========================
+// HERO SEARCH BRIDGE
+// =========================
+function doHeroSearch() {
+  const heroInput = document.getElementById("searchInput");
+  const mainInput = document.getElementById("searchInput");
+  if (heroInput && mainInput) {
+    mainInput.value = heroInput.value.trim();
+    doSearch();
+  }
+}
+
+// =========================
+// SEARCH EXAMPLE
+// =========================
+function searchExample(claim) {
+  const input = document.getElementById("searchInput");
+  if (input) { input.value = claim; doSearch(); }
+}
+
+// =========================
+// API
+// =========================
+async function fetchFactCheck(query) {
+  try {
+    const res = await fetch("/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: query })
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (error) {
+    console.error("API error:", error);
+    return { responses: [] };
+  }
+}
+
+// =========================
+// MAIN SEARCH
+// =========================
+let isSearching = false;
+
+async function doSearch() {
+  if (isSearching) return;
+
+  const hero = document.querySelector(".hero");
+  const queryInput = document.getElementById("searchInput");
+  const query = queryInput ? queryInput.value.trim() : "";
+
+  if (!query) {
+    if (hero) hero.style.display = "flex";
+    return;
+  }
+
+  if (hero) hero.style.display = "none";
+  isSearching = true;
+
+  const loadingEl = document.getElementById("loadingState");
+  const emptyEl = document.getElementById("emptyState");
+  const resultsContainer = document.getElementById("resultsContainer");
+  const recentSection = document.getElementById("recentSection");
+  const filtersRow = document.getElementById("filtersRow");
+  const emptyTitle = document.querySelector(".fc-empty-title");
+
+  if (emptyTitle) emptyTitle.innerText = "No fact checks found";
+  if (filtersRow) filtersRow.style.display = "flex";
+  if (recentSection) recentSection.style.display = "none";
+  if (resultsContainer) resultsContainer.innerHTML = "";
+  if (emptyEl) emptyEl.classList.remove("show");
+  if (loadingEl) loadingEl.classList.add("show");
+
+  try {
+    const data = await fetchFactCheck(query);
+    if (loadingEl) loadingEl.classList.remove("show");
+
+    if (!data || !Array.isArray(data.responses)) throw new Error("Invalid response format");
+
+    const validResults = data.responses.filter(isValidResult);
+
+    if (validResults.length === 0) {
+      if (emptyEl) emptyEl.classList.add("show");
+      if (recentSection) recentSection.style.display = "block";
+      return;
+    }
+
+    validResults.sort((a, b) => ((b.result.sources || []).length) - ((a.result.sources || []).length));
+
+    const history = JSON.parse(localStorage.getItem("history") || "[]");
+    validResults.forEach(r => {
+      history.unshift({ claim: r.claim, verdict: r.result.verdict, explanation: r.result.explanation, sources: r.result.sources || [], date: "Now" });
+    });
+    localStorage.setItem("history", JSON.stringify(history.slice(0, 20)));
+
+    if (resultsContainer) {
+      resultsContainer.innerHTML = validResults.map((r, i) => renderCard({
+        claim: r.claim,
+        verdict: r.result.verdict || "uncertain",
+        explanation: r.result.explanation || "No explanation available.",
+        sources: r.result.sources || [],
+        date: "Now"
+      }, i)).join("");
+    }
+
+  } catch (err) {
+    console.error("Search error:", err);
+    if (loadingEl) loadingEl.classList.remove("show");
+    if (emptyEl) emptyEl.classList.add("show");
+    if (emptyTitle) emptyTitle.innerText = "Connection failed — please try again";
+  } finally {
+    isSearching = false;
+  }
+}
+
+// =========================
+// BREAKING NEWS
+// =========================
+let breakingNewsLoading = false;
+let breakingNewsList = [];
+
+const CAT_COLORS = {
+  "World":      "world",
+  "Science":    "science",
+  "Technology": "technology",
+  "Health":     "health",
+  "Economy":    "economy"
+};
+
+const CAT_ICONS = {
+  "World":      "\u{1F30D}",
+  "Science":    "\u{1F52C}",
+  "Technology": "\u{1F4BB}",
+  "Health":     "\u{1FA7A}",
+  "Economy":    "\u{1F4B9}"
+};
+
+function getCatKey(cat) {
+  return CAT_COLORS[cat] || "default";
+}
+
+function renderBreakingNews(items) {
+  const grid = document.getElementById("bnGrid");
+  const tickerWrap = document.getElementById("bnTickerWrap");
+  const tickerTrack = document.getElementById("bnTickerTrack");
+  const lastUpdated = document.getElementById("bnLastUpdated");
+
+  if (lastUpdated) {
+    const now = new Date();
+    lastUpdated.textContent = "Updated " + now.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
+  }
+
+  if (!items || items.length === 0) {
+    if (grid) grid.innerHTML = '<div class="breaking-news-empty">No live claims available right now</div>';
+    return;
+  }
+
+  // Build ticker (duplicate for seamless loop)
+  if (tickerTrack && tickerWrap) {
+    const tickerItems = items.map((item, i) => {
+      const catKey = getCatKey(item.category);
+      const catLabel = item.category || "News";
+      return `<div class="bn-ticker-item" onclick="searchBreakingNewsByIndex(${i})" title="${escapeHtmlAttr(item.title)}">
+        <span class="bn-ticker-cat cat-${catKey} cat-${catKey}-bg">${escapeHtml(catLabel)}</span>
+        ${escapeHtml(item.title)}
+      </div>`;
+    }).join("");
+    // Duplicate for seamless infinite scroll
+    tickerTrack.innerHTML = tickerItems + tickerItems;
+    tickerWrap.style.display = "flex";
+  }
+
+  // Build category grid (up to 12 items)
+  if (grid) {
+    const gridItems = items.slice(0, 12).map((item, i) => {
+      const catKey = getCatKey(item.category);
+      const icon = CAT_ICONS[item.category] || "\u{1F4F0}";
+      return `<div class="bn-card" onclick="searchBreakingNewsByIndex(${i})">
+        <div class="bn-card-category cat-${catKey}">
+          <span>${icon}</span>
+          ${escapeHtml(item.category || "News")}
+        </div>
+        <div class="bn-card-title">${escapeHtml(item.title)}</div>
+      </div>`;
+    }).join("");
+    grid.innerHTML = `<div class="bn-grid">${gridItems}</div>`;
+  }
+}
+
+async function loadBreakingNews() {
+  if (breakingNewsLoading) return;
+  breakingNewsLoading = true;
+
+  const btn = document.getElementById("bnRefreshBtn");
+  if (btn) btn.classList.add("spinning");
+
+  try {
+    const response = await fetch("/breaking-news");
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    if (!Array.isArray(data)) throw new Error("Invalid format");
+
+    breakingNewsList = data;
+    renderBreakingNews(breakingNewsList);
+
+  } catch (error) {
+    console.error("Breaking news error:", error);
+    const grid = document.getElementById("bnGrid");
+    if (grid) grid.innerHTML = '<div class="breaking-news-empty">Unable to load live claims — will retry in 30s</div>';
+  } finally {
+    breakingNewsLoading = false;
+    if (btn) btn.classList.remove("spinning");
+  }
+}
+
+function manualRefreshNews() {
+  breakingNewsLoading = false; // force reset so it runs
+  loadBreakingNews();
+}
+
+function searchBreakingNewsByIndex(index) {
+  if (!Array.isArray(breakingNewsList) || index < 0 || index >= breakingNewsList.length) return;
+  const item = breakingNewsList[index];
+  if (!item || !item.title) return;
+  const title = String(item.title).trim();
+  if (!title) return;
+  const searchInput = document.getElementById("searchInput");
+  if (searchInput) searchInput.value = title;
+  const explorerTab = document.querySelector(".fc-nav-tab");
+  if (explorerTab) switchTab("explorer", explorerTab);
+  doSearch();
+}
+
+let breakingNewsInterval = null;
+
+function startBreakingNewsRefresh() {
+  loadBreakingNews();
+  if (breakingNewsInterval) clearInterval(breakingNewsInterval);
+  breakingNewsInterval = setInterval(loadBreakingNews, 30000);
+}
+
+// =========================
+// FILTERS
+// =========================
+function toggleFilter(chipEl) {
+  if (!chipEl) return;
+  chipEl.classList.toggle("active");
+  applyFilters();
+}
+
+function applyFilters() {
+  const cards = document.querySelectorAll(".fc-card");
+  const activeFilters = Array.from(document.querySelectorAll(".fc-filter-chip.active"))
+    .map(c => c.innerText.toLowerCase());
+
+  cards.forEach(card => {
+    let show = true;
+    if (activeFilters.includes("notable sources only")) {
+      const verdict = card.getAttribute("data-verdict");
+      if (verdict === "unverified" || verdict === "uncertain") show = false;
+    }
+    card.style.display = show ? "block" : "none";
+  });
+}
+
+// =========================
+// TAB NAVIGATION
+// =========================
+function switchTab(name, el) {
+  document.querySelectorAll(".fc-nav-tab").forEach(t => t.classList.remove("active"));
+  el.classList.add("active");
+  document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("show"));
+  const panel = document.getElementById("tab-" + name);
+  if (panel) panel.classList.add("show");
+  if (name === "recent") loadRecent();
+}
+
+// =========================
+// HISTORY
+// =========================
+function loadRecent() {
+  const container = document.getElementById("recentAllContainer");
+  const history = JSON.parse(localStorage.getItem("history") || "[]");
+  if (!container) return;
+  if (history.length === 0) {
+    container.innerHTML = '<p style="color:var(--muted); text-align:center; padding:40px 20px; font-size:14px;">No recent searches yet</p>';
+    return;
+  }
+  container.innerHTML = history.map((item, i) => renderCard(item, i)).join("");
+}
+
+function clearHistory() {
+  localStorage.removeItem("history");
+  const recentContainer = document.getElementById("recentContainer");
+  const recentAllContainer = document.getElementById("recentAllContainer");
+  if (recentContainer) recentContainer.innerHTML = "";
+  if (recentAllContainer) recentAllContainer.innerHTML = '<p style="color:var(--muted); text-align:center; padding:40px 20px; font-size:14px;">History cleared</p>';
+}
+
+// =========================
+// TRENDING (PLACEHOLDER)
+// =========================
+function loadTrending() {
+  // No trending items currently
+}
+
+function searchTrendingByIndex(index) {
+  const trending = [];
+  const text = trending[index] || "";
+  document.getElementById("searchInput").value = text;
+  doSearch();
+}
+
+// =========================
+// INIT
+// =========================
+document.addEventListener("DOMContentLoaded", function() {
+  const hero = document.querySelector(".hero");
+  if (hero) hero.style.display = "flex";
+
+  // Header search
+  const input = document.getElementById("searchInput");
+  if (input) input.addEventListener("keydown", e => { if (e.key === "Enter") doSearch(); });
+
+
+  loadTrending();
+  startBreakingNewsRefresh();
+
+  const history = JSON.parse(localStorage.getItem("history") || "[]");
+  const recentContainer = document.getElementById("recentContainer");
+  if (recentContainer && history.length > 0) {
+    recentContainer.innerHTML = history.slice(0, 5).map((item, i) => renderCard(item, i)).join("");
+  }
+});
+</script>
+</body>
+</html>

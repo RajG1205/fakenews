@@ -1,8 +1,33 @@
-flask
-groq
-tavily-python
-feedparser
-scikit-learn
-python-dotenv
-bleach
-gunicorn
+# =========================
+# CORE WEB FRAMEWORK
+# =========================
+flask==3.0.3
+gunicorn==21.2.0
+
+# =========================
+# AI / LLM
+# =========================
+groq==0.11.0
+
+# =========================
+# SEARCH API
+# =========================
+tavily-python==0.3.3
+
+# =========================
+# NEWS FEEDS
+# =========================
+feedparser==6.0.11
+
+# =========================
+# MACHINE LEARNING
+# =========================
+scikit-learn==1.5.1
+
+
+# =========================
+# UTILITIES
+# =========================
+python-dotenv==1.0.1
+bleach==6.1.0
+requests==2.32.3
