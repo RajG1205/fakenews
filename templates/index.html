@@ -980,7 +980,7 @@ function isValid(r) {
   return r && r.claim && r.result && r.result.verdict && r.result.explanation;
 }
 
-<<<<<<< HEAD
+HEAD
 function getSourceDomain(source) {
   if (!source || !source.url) return null;
   try {
@@ -1101,8 +1101,6 @@ async function fetchFactCheck(query) {
 // MAIN SEARCH
 // =========================
 let isSearching = false;
-
-=======
 /* ══════════════════════════════════════════
    MAIN SEARCH
    ─ searchInput is in header → always visible
@@ -1111,7 +1109,6 @@ let isSearching = false;
    ─ App.searching guard prevents concurrent calls
    ─ finally{} always unlocks → user can always re-search
 ══════════════════════════════════════════ */
->>>>>>> 5a76a47 (Describe what changes you made)
 async function doSearch() {
   if (App.searching) return;
 
