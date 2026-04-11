@@ -290,20 +290,25 @@ def get_fallback_response(claim: str, verdict: str, explanation: str) -> dict:
 
 
 def normalize_verdict(verdict: str) -> str:
-    """Normalize verdict to standard format"""
     if not isinstance(verdict, str):
-        return "UNCERTAIN"
+        return "uncertain"
     
     verdict = verdict.strip().upper()
-    valid = ["TRUE", "FALSE", "MISLEADING", "UNCERTAIN"]
-    
-    if verdict in valid:
-        return verdict
-    if "TRUE" in verdict and "FALSE" not in verdict:
-        return "TRUE"
-    if "FALSE" in verdict:
-        return "FALSE"
-    if "MISLEAD" in verdict:
-        return "MISLEADING"
-    return "UNCERTAIN"
 
+    if verdict == "TRUE":
+        return "true"
+    if verdict == "FALSE":
+        return "false"
+    if verdict == "MISLEADING":
+        return "misleading"
+    if verdict == "UNCERTAIN":
+        return "uncertain"
+
+    if "TRUE" in verdict and "FALSE" not in verdict:
+        return "true"
+    if "FALSE" in verdict:
+        return "false"
+    if "MISLEAD" in verdict:
+        return "misleading"
+
+    return "uncertain"

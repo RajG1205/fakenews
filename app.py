@@ -41,15 +41,23 @@ def chat():
         data = request.get_json()
         message = sanitize_input(data.get("message", ""))
 
+        # 🔒 Empty check
         if not message:
             return jsonify({"responses": []})
 
-        claims = message.split(".")[:5]
+        # ✅ OPTIONAL SMART SPLIT
+        if message.count(".") > 2:
+            claims = message.split(".")[:5]
+        else:
+            claims = [message.strip()]
 
         responses = []
+
         for claim in claims:
             claim = claim.strip()
-            if not claim:
+
+            # ✅ BONUS: skip weak / meaningless claims
+            if not claim or len(claim.split()) < 4:
                 continue
 
             result = fact_check(claim)

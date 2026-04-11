@@ -980,83 +980,12 @@ function isValid(r) {
   return r && r.claim && r.result && r.result.verdict && r.result.explanation;
 }
 
-<<<<<<< HEAD
 function getSourceDomain(source) {
   if (!source || !source.url) return null;
   try {
     const url = new URL(source.url);
     return url.hostname.replace("www.", "").split(".")[0].toUpperCase().substring(0, 5);
   } catch { return null; }
-}
-
-// =========================
-// RENDER CARD
-// =========================
-function renderCard(item, index = 0) {
-  const verdict = (item.verdict || "uncertain").toLowerCase();
-  const vc = VERDICT_CLASSES[verdict] || "verdict-unverified";
-  const vl = VERDICT_LABELS[verdict] || "Uncertain";
-
-  const claimEscaped = escapeHtml(item.claim);
-  const explanationEscaped = escapeHtml(item.explanation || "No explanation available.");
-
-  const sources = item.sources || [];
-  const sourceCount = sources.length;
-  const sourceText = sourceCount === 1 ? "source" : "sources";
-
-  const uniqueDomains = [...new Set(sources.slice(0, 4).map(getSourceDomain).filter(Boolean))];
-  const badgesHTML = uniqueDomains.map(d => `<span class="source-badge-chip">${d}</span>`).join("");
-
-  const sourcesHTML = sources.slice(0, 3).map(s => {
-    const titleEscaped = escapeHtml(s.title || "Source");
-    const urlSafe = getSafeUrl(s.url);
-    return `<a class="source-link" href="${urlSafe}" target="_blank" rel="noopener">
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-      ${titleEscaped}
-    </a>`;
-  }).join("");
-
-  return `
-    <div class="fc-card" data-verdict="${verdict}">
-      <div class="fc-card-top">
-        <div class="fc-claim-text">${claimEscaped}</div>
-        <span class="fc-verdict-badge ${vc}">${vl}</span>
-      </div>
-
-      <div class="fc-card-meta">
-        <span class="fc-publisher">
-          <span class="fc-publisher-dot">V</span>
-          VerifyAI
-        </span>
-        <span class="fc-sep">·</span>
-        <span>${item.date || "Now"}</span>
-        ${sourceCount > 0 ? `<span class="fc-sep">·</span><span>${sourceCount} ${sourceText}</span>` : ""}
-      </div>
-
-      ${badgesHTML ? `<div class="source-badges-row">${badgesHTML}</div>` : ""}
-
-      <button class="fc-explain-btn" onclick="toggleExplain(${index})">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        Why this verdict
-      </button>
-
-      <div id="exp-${index}" style="display:none;">
-        <div class="explain-box">${explanationEscaped}</div>
-        <div style="margin-top:6px;">${sourcesHTML}</div>
-      </div>
-    </div>`;
-}
-
-// =========================
-// TOGGLE EXPLANATION
-// =========================
-function toggleExplain(index) {
-  const el = document.getElementById("exp-" + index);
-  if (!el) return;
-  const btn = el.previousElementSibling;
-  const isHidden = el.style.display === "none";
-  el.style.display = isHidden ? "block" : "none";
-  if (btn) btn.style.color = isHidden ? "var(--accent)" : "";
 }
 
 // =========================
@@ -1102,7 +1031,6 @@ async function fetchFactCheck(query) {
 // =========================
 let isSearching = false;
 
-=======
 /* ══════════════════════════════════════════
    MAIN SEARCH
    ─ searchInput is in header → always visible
@@ -1111,7 +1039,6 @@ let isSearching = false;
    ─ App.searching guard prevents concurrent calls
    ─ finally{} always unlocks → user can always re-search
 ══════════════════════════════════════════ */
->>>>>>> 5a76a47 (Describe what changes you made)
 async function doSearch() {
   if (App.searching) return;
 
@@ -1138,6 +1065,7 @@ async function doSearch() {
 
   try {
     const data = await fetchFactCheck(query);
+    console.log("API RESPONSE:", data);
     hide($("loadingState"));
 
     if (!data || !Array.isArray(data.responses))
